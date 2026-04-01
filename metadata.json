@@ -1,0 +1,5 @@
+{
+  "name": "OSINTNeoAiX",
+  "description": "A tool for visualizing and analyzing open-source intelligence data, entities, and relationships.",
+  "requestFramePermissions": []
+}

@@ -1,0 +1,93 @@
+{
+  "entities": {
+    "Investigation": {
+      "title": "Investigation",
+      "description": "An OSINT investigation project",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string" },
+        "updated": { "type": "string" },
+        "entities": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "authorUid": { "type": "string" }
+      },
+      "required": ["name", "status", "updated", "entities", "createdAt"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "A comment on an investigation",
+      "type": "object",
+      "properties": {
+        "author": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "status": { "type": "string" },
+        "entities": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["author", "text", "timestamp", "status", "entities", "createdAt"]
+    },
+    "Upload": {
+      "title": "Upload",
+      "description": "Evidence uploaded to an investigation",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "size": { "type": "string" },
+        "uploader": { "type": "string" },
+        "status": { "type": "string" },
+        "date": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "size", "uploader", "status", "date", "createdAt"]
+    },
+    "Activity": {
+      "title": "Activity",
+      "description": "A recent activity event",
+      "type": "object",
+      "properties": {
+        "action": { "type": "string" },
+        "target": { "type": "string" },
+        "type": { "type": "string" },
+        "time": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["action", "target", "type", "time", "status", "createdAt"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A user of the system",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "role": { "type": "string" }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "users": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores user roles and profiles"
+    },
+    "investigations": {
+      "schema": { "$ref": "#/entities/Investigation" },
+      "description": "Stores all investigations"
+    },
+    "investigations/{investigationId}/comments": {
+      "schema": { "$ref": "#/entities/Comment" },
+      "description": "Stores comments for a specific investigation"
+    },
+    "investigations/{investigationId}/uploads": {
+      "schema": { "$ref": "#/entities/Upload" },
+      "description": "Stores uploads for a specific investigation"
+    },
+    "activities": {
+      "schema": { "$ref": "#/entities/Activity" },
+      "description": "Stores global activity feed"
+    }
+  }
+}
