@@ -1,0 +1,165 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: investigations
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required)
+    //   - description: string (optional)
+    //   - status: string (required)
+    //   - updated: string (required)
+    //   - entities: number (required)
+    //   - createdAt: string (required)
+    //   - authorUid: string (optional)
+    //
+    // Collection: investigations/{investigationId}/comments
+    // Document ID: auto-generated
+    // Fields:
+    //   - author: string (required)
+    //   - text: string (required)
+    //   - status: string (required)
+    //   - entities: list (required)
+    //   - createdAt: string (required)
+    //
+    // Collection: investigations/{investigationId}/uploads
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required)
+    //   - size: string (required)
+    //   - uploader: string (required)
+    //   - status: string (required)
+    //   - date: string (required)
+    //   - createdAt: string (required)
+    //
+    // Collection: activities
+    // Document ID: auto-generated
+    // Fields:
+    //   - action: string (required)
+    //   - target: string (required)
+    //   - type: string (required)
+    //   - time: string (required)
+    //   - status: string (required)
+    //   - createdAt: string (required)
+    //
+    // Collection: users
+    // Document ID: user uid
+    // Fields:
+    //   - email: string (required)
+    //   - role: string (required)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "amd949609@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function isValidString(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+             request.resource.data[field].size() >= minLen &&
+             request.resource.data[field].size() <= maxLen;
+    }
+
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !('field' in request.resource.data) ||
+             (request.resource.data[field] is string &&
+              request.resource.data[field].size() >= minLen &&
+              request.resource.data[field].size() <= maxLen);
+    }
+
+    // Domain Validators
+    function isValidInvestigation() {
+      return hasRequiredFields(['name', 'updated', 'entities', 'createdAt']) &&
+             isValidString('name', 1, 100) &&
+             isValidOptionalString('description', 0, 1000) &&
+             isValidString('updated', 1, 50) &&
+             request.resource.data.entities is number &&
+             request.resource.data.entities >= 0 &&
+             isValidString('createdAt', 1, 50);
+    }
+
+    function isValidComment() {
+      return hasRequiredFields(['author', 'text', 'entities', 'createdAt']) &&
+             isValidString('author', 1, 100) &&
+             isValidString('text', 1, 2000) &&
+             request.resource.data.entities is list &&
+             request.resource.data.entities.size() <= 100 &&
+             isValidString('createdAt', 1, 50);
+    }
+
+    function isValidUpload() {
+      return hasRequiredFields(['name', 'size', 'uploader', 'date', 'createdAt']) &&
+             isValidString('name', 1, 200) &&
+             isValidString('size', 1, 50) &&
+             isValidString('uploader', 1, 100) &&
+             isValidString('date', 1, 50) &&
+             isValidString('createdAt', 1, 50);
+    }
+
+    function isValidActivity() {
+      return hasRequiredFields(['action', 'target', 'type', 'time', 'createdAt']) &&
+             isValidString('action', 1, 100) &&
+             isValidString('target', 1, 200) &&
+             isValidString('type', 1, 50) &&
+             isValidString('time', 1, 50) &&
+             isValidString('createdAt', 1, 50);
+    }
+
+    function isValidUser() {
+      return hasRequiredFields(['email', 'role']) &&
+             isValidString('email', 1, 100) &&
+             isValidString('role', 1, 50);
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAuthenticated() && request.auth.uid == userId && isValidUser() && request.resource.data.role == 'user';
+      allow update: if isAdmin() && isValidUser();
+      allow delete: if isAdmin();
+    }
+
+    // Allow public read and write for this prototype, as it supports anonymous users.
+    // In a production app, this should be locked down to authenticated users.
+    match /investigations/{investigationId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isValidInvestigation();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if isAuthenticated() && isValidComment();
+        allow update: if isAdmin();
+        allow delete: if isAdmin();
+      }
+
+      match /uploads/{uploadId} {
+        allow read: if true;
+        allow create: if isAuthenticated() && isValidUpload();
+        allow update: if isAdmin();
+        allow delete: if isAdmin();
+      }
+    }
+
+    match /activities/{activityId} {
+      allow read: if true;
+      allow create: if isAdmin(); // Activities are automated
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+  }
+}
